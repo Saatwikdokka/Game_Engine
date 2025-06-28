@@ -137,7 +137,9 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cam.cpp" />
     <ClCompile Include="EBO.cpp" />
+    <ClCompile Include="glm.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="shaders.cpp" />
@@ -150,12 +152,16 @@
     <None Include="default.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cam.h" />
     <ClInclude Include="EBO.h" />
+    <ClInclude Include="GameObject.h" />
+    <ClInclude Include="scene.h" />
     <ClInclude Include="shaders.h" />
     <ClInclude Include="VAO.h" />
     <ClInclude Include="VBO.h" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="..\..\brick.png" />
     <Image Include="texture.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

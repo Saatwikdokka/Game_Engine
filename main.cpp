@@ -2,33 +2,48 @@
 #include<glad/glad.h>
 #include<GLFW/glfw3.h>
 #include<stb/stb_image.h>
+#include<glm/glm.hpp>
+#include<glm/gtc/matrix_transform.hpp>
+#include<glm/gtc/type_ptr.hpp>
+
 
 #include"shaders.h"
 #include"VAO.h"
 #include"VBO.h"
 #include"EBO.h"
-
+#include"cam.h"
+#include "Scene.h"
+#include "GameObject.h"
 
 
 GLfloat vertices[] =
-{ //     COORDINATES     /        COLORS      / 
-	-0.5f, -0.5f, 0.0f,     1.0f, 0.0f, 0.0f,   0.0f , 0.0f, // Lower left corner
-	-0.5f,  0.5f, 0.0f,     0.0f, 1.0f, 0.0f,   0.0f , 1.0f, // Upper left corner
-	 0.5f,  0.5f, 0.0f,     0.0f, 0.0f, 1.0f,	1.0f , 1.0f, // Upper right corner
-	 0.5f, -0.5f, 0.0f,     1.0f, 1.0f, 1.0f,   1.0f , 0.0f  // Lower right corner
+{ //     COORDINATES     /        COLORS      /   TexCoord  //
+	-0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+	-0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+	 0.5f, 0.0f, -0.5f,     0.83f, 0.70f, 0.44f,	0.0f, 0.0f,
+	 0.5f, 0.0f,  0.5f,     0.83f, 0.70f, 0.44f,	5.0f, 0.0f,
+	 0.0f, 0.8f,  0.0f,     0.92f, 0.86f, 0.76f,	2.5f, 5.0f
 };
 
 // Indices for vertices order
 GLuint indices[] =
 {
-	0, 2, 1, // Upper triangle
-	0, 3, 2 // Lower triangle
+	0, 1, 2,
+	0, 2, 3,
+	0, 1, 4,
+	1, 2, 4,
+	2, 3, 4,
+	3, 0, 4
 };
 
 
 
 int main()
 {
+	float deltaTime = 0.0f; // Time between frames
+	float lastFrame = 0.0f; // Time of last frame
+
+
 	// Initialize GLFW
 	glfwInit();
 
@@ -51,6 +66,7 @@ int main()
 	}
 	// Introduce the window into the current context
 	glfwMakeContextCurrent(window);
+	//glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
 	//Load GLAD so it configures OpenGL
 	gladLoadGL();
@@ -66,7 +82,7 @@ int main()
 
 
 	// Generates Vertex Array Object and binds it
-	VAO VAO1;
+    VAO VAO1;
 	VAO1.Bind();
 
 	// Generates Vertex Buffer Object and links it to vertices
@@ -83,13 +99,12 @@ int main()
 	VBO1.Unbind();
 	EBO1.Unbind();
 
-	// Gets ID of uniform called "scale"
-	GLuint uniID = glGetUniformLocation(shaderProgram.ID, "scale");
+	
 	//texture
 	int width, height, numColch;
 	stbi_set_flip_vertically_on_load(true);
 
-	unsigned char* bytes = stbi_load("texture.png", &width, &height, &numColch, 4);
+	unsigned char* bytes = stbi_load("brick.png", &width, &height, &numColch, 4);
 	GLuint texture;
 	glGenTextures(1, &texture);
 	glActiveTexture(GL_TEXTURE0);
@@ -111,30 +126,59 @@ int main()
 	glBindTexture(GL_TEXTURE_2D, 0);
 	GLuint tex0Uni = glGetUniformLocation(shaderProgram.ID, "tex0");
 	shaderProgram.Activate();
-	glUniform1i(tex0Uni, 0);
+	
+	// Enables the Depth Buffer
+	glEnable(GL_DEPTH_TEST);
+	// Creates camera object
+	Camera camera(800, 800, glm::vec3(0.0f, 0.0f, 2.0f));
+	Scene scene;
+
+	GameObject pyramid(VAO1, texture, shaderProgram);
+	pyramid.position = glm::vec3(0.0f, 0.0f, 0.0f);
+	pyramid.rotation = glm::vec3(0.0f, 45.0f, 0.0f);
+	pyramid.scale = glm::vec3(1.5f, 1.5f, 1.5f);
+
+	scene.Add(pyramid);
+
+	GameObject pyramid2 = pyramid;
+	pyramid2.position.x = 2.0f;
+	scene.Add(pyramid2);
+
+
 	// Main while loop
 	while (!glfwWindowShouldClose(window))
 	{
+		float currentFrame = glfwGetTime();
+		deltaTime = currentFrame - lastFrame;
+		lastFrame = currentFrame;
+
 		// Specify the color of the background
 		glClearColor(0.07f, 0.13f, 0.17f, 1.0f);
 		// Clean the back buffer and assign the new color to it
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 		// Tell OpenGL which Shader Program we want to use
 		shaderProgram.Activate();
-		// Assigns a value to the uniform; NOTE: Must always be done after activating the Shader Program
-		glUniform1f(uniID, 0.5f);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		// Bind the VAO so OpenGL knows to use it
-		VAO1.Bind();
-		// Draw primitives, number of indices, datatype of indices, index of indices
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+		glUniform1i(tex0Uni, 0);
+		camera.Inputs(window);
+		// Handles camera inputs
+		for (auto& obj : scene.objects)
+		{
+			obj.rotation.y += 50.0f * deltaTime;  // 50 degrees per second
+			if (obj.rotation.y > 360.0f)
+				obj.rotation.y -= 360.0f;
+		}
+
+		// Updates and exports the camera matrix to the Vertex Shader
+		camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
+		
+		scene.Draw(camera);
+
 		// Swap the back buffer with the front buffer
 		glfwSwapBuffers(window);
 		// Take care of all GLFW events
 		glfwPollEvents();
 	}
-
-
 
 	// Delete all the objects we've created
 	VAO1.Delete();
