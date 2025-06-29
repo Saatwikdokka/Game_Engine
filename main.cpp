@@ -14,6 +14,9 @@
 #include"cam.h"
 #include "Scene.h"
 #include "GameObject.h"
+#include "EntityManager.h"
+#include "ComponentManager.h"
+#include "Systems.h"
 
 
 GLfloat vertices[] =
@@ -36,7 +39,9 @@ GLuint indices[] =
 	3, 0, 4
 };
 
-
+EntityManager entityManager;
+ComponentManager componentManager;
+RenderSystem renderSystem;
 
 int main()
 {
@@ -108,7 +113,8 @@ int main()
 	GLuint texture;
 	glGenTextures(1, &texture);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
+	glBindTexture(GL_TEXTURE_2D, texture); 
+
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -143,7 +149,23 @@ int main()
 	GameObject pyramid2 = pyramid;
 	pyramid2.position.x = 2.0f;
 	scene.Add(pyramid2);
+	// === ECS Entity Example ===
+	Entity entity = entityManager.CreateEntity();
 
+	componentManager.transforms[entity] = TransformComponent{
+		glm::vec3(-2.0f, 0.0f, 0.0f), // position
+		glm::vec3(0.0f),              // rotation
+		glm::vec3(1.0f)               // scale
+	};
+
+	componentManager.renderables[entity] = RenderableComponent {
+		VAO1.ID,          // make sure VAO class has a public `ID`
+		&shaderProgram,   // pass shader pointer
+		texture           // texture ID
+	};
+
+
+	
 
 	// Main while loop
 	while (!glfwWindowShouldClose(window))
@@ -169,8 +191,10 @@ int main()
 				obj.rotation.y -= 360.0f;
 		}
 
-		// Updates and exports the camera matrix to the Vertex Shader
-		camera.Matrix(45.0f, 0.1f, 100.0f, shaderProgram, "camMatrix");
+		
+
+		renderSystem.Update(componentManager, camera);
+
 		
 		scene.Draw(camera);
 
@@ -191,4 +215,4 @@ int main()
 	// Terminate GLFW before ending the program
 	glfwTerminate();
 	return 0;
-}
+};

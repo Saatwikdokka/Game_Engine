@@ -153,10 +153,14 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="cam.h" />
+    <ClInclude Include="ComponentManager.h" />
+    <ClInclude Include="Components.h" />
     <ClInclude Include="EBO.h" />
     <ClInclude Include="GameObject.h" />
+    <ClInclude Include="EntityManager.h" />
     <ClInclude Include="scene.h" />
     <ClInclude Include="shaders.h" />
+    <ClInclude Include="Systems.h" />
     <ClInclude Include="VAO.h" />
     <ClInclude Include="VBO.h" />
   </ItemGroup>
